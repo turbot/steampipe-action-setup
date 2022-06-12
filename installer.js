@@ -1,4 +1,5 @@
 const core = require('@actions/core');
+const tc = require('@actions/tool-cache');
 const process = require('process');
 const semver = require('semver');
 const https = require('https');
@@ -115,9 +116,41 @@ function getVersionFromSpec(versionSpec, versions) {
   return version;
 }
 
+async function installSteampipe(steampipeVersion) {
+  const toolPath = tc.find('steampipe', steampipeVersion, process.arch);
+
+  if (toolPath) {
+    core.info(`Found in cache @ ${toolPath}`);
+    return toolPath;
+  } else {
+    const targets = {
+      linux: {
+        x64: 'linux_amd64.tar.gz',
+        arm64: 'linux_arm64.tar.gz',
+      },
+      darwin: {
+        x64: 'darwin_amd64.zip',
+	arm64: 'darwin_arm64.zip',
+      }
+    };
+    const target = targets[process.platform][process.arch];
+
+    const steampipeArchivePath = await tc.downloadTool(`https://github.com/turbot/steampipe/releases/download/${steampipeVersion}/steampipe_${target}`);
+    const extractFolder = await (async () => {
+      if (process.platform === 'linux') {
+        return tc.extractTar(steampipeArchivePath);
+      } else {
+        return tc.extractZip(steampipeArchivePath);
+      }
+    })();
+
+    return (await tc.cacheDir(extractFolder, 'steampipe', steampipeVersion, process.arch));
+  }
+}
 
 module.exports = {
   checkPlatform,
   getSteampipeVersions,
   getVersionFromSpec,
+  installSteampipe,
 };

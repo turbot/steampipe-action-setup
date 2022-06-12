@@ -5,6 +5,7 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
+const tc = __nccwpck_require__(7784);
 const process = __nccwpck_require__(1765);
 const semver = __nccwpck_require__(1383);
 const https = __nccwpck_require__(7211);
@@ -121,11 +122,43 @@ function getVersionFromSpec(versionSpec, versions) {
   return version;
 }
 
+async function installSteampipe(steampipeVersion) {
+  const toolPath = tc.find('steampipe', steampipeVersion, process.arch);
+
+  if (toolPath) {
+    core.info(`Found in cache @ ${toolPath}`);
+    return toolPath;
+  } else {
+    const targets = {
+      linux: {
+        x64: 'linux_amd64.tar.gz',
+        arm64: 'linux_arm64.tar.gz',
+      },
+      darwin: {
+        x64: 'darwin_amd64.zip',
+	arm64: 'darwin_arm64.zip',
+      }
+    };
+    const target = targets[process.platform][process.arch];
+
+    const steampipeArchivePath = await tc.downloadTool(`https://github.com/turbot/steampipe/releases/download/${steampipeVersion}/steampipe_${target}`);
+    const extractFolder = await (async () => {
+      if (process.platform === 'linux') {
+        return tc.extractTar(steampipeArchivePath);
+      } else {
+        return tc.extractZip(steampipeArchivePath);
+      }
+    })();
+
+    return (await tc.cacheDir(extractFolder, 'steampipe', steampipeVersion, process.arch));
+  }
+}
 
 module.exports = {
   checkPlatform,
   getSteampipeVersions,
   getVersionFromSpec,
+  installSteampipe,
 };
 
 
@@ -9202,12 +9235,11 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const core = __nccwpck_require__(2186);
-const tc = __nccwpck_require__(7784);
-const path = __nccwpck_require__(5622);
 const {
   checkPlatform,
   getSteampipeVersions,
-  getVersionFromSpec
+  getVersionFromSpec,
+  installSteampipe,
 } = __nccwpck_require__(7968);
 
 async function run() {
@@ -9222,37 +9254,8 @@ async function run() {
       throw new Error(`Unable to find Steampipe version '${version}'.`);
     }
 
-    // check cache
-    let toolPath = tc.find('steampipe', versionToInstall, process.arch);
-
-    if (toolPath) {
-      core.info(`Found in cache @ ${toolPath}`);
-    } else {
-      const targets = {
-        linux: {
-          x64: 'linux_amd64.tar.gz',
-          arm64: 'linux_arm64.tar.gz',
-        },
-        darwin: {
-          x64: 'darwin_amd64.zip',
-	  arm64: 'darwin_arm64.zip',
-        }
-      };
-      const target = targets[process.platform][process.arch];
-
-      const steampipeArchivePath = await tc.downloadTool(`https://github.com/turbot/steampipe/releases/download/${versionToInstall}/steampipe_${target}`);
-      const extractFolder = await (async () => {
-        if (process.platform === 'linux') {
-          return tc.extractTar(steampipeArchivePath);
-        } else {
-          return tc.extractZip(steampipeArchivePath);
-        }
-      })();
-
-      toolPath = await tc.cacheDir(extractFolder, 'steampipe', versionToInstall, process.arch);
-    }
-
-    core.addPath(toolPath);
+    const steampipePath = await installSteampipe(versionToInstall);
+    core.addPath(steampipePath);
 
     core.setOutput('steampipe-version', versionToInstall);
   } catch (error) {
