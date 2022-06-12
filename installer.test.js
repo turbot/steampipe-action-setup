@@ -1,4 +1,12 @@
-const { checkPlatform, getVersionFromSpec } = require('./installer');
+const exec = require('@actions/exec');
+const fs = require('fs');
+const {
+  checkPlatform,
+  getVersionFromSpec,
+  installSteampipePlugins,
+  configureSteampipePlugins,
+  getSteampipePluginConfig,
+} = require('./installer');
 
 describe('checkPlatform', () => {
   const workingPlatforms = ['linux', 'darwin'];
@@ -63,5 +71,109 @@ describe('getVersionFromSpec', () => {
     expect(getVersionFromSpec('latest', steampipeVersions)).toEqual('v0.12.1');
     expect(getVersionFromSpec('^v0.11', steampipeVersions)).toEqual('v0.11.2');
     expect(getVersionFromSpec('^v0.13', steampipeVersions)).toEqual('');
+  });
+});
+
+
+jest.mock('@actions/exec');
+
+describe('installSteampipePlugins', () => {
+  beforeEach(() => {
+    exec.exec = jest.fn();
+  });
+
+  it('install the specified plugins', async () => {
+    await installSteampipePlugins({
+      github: {},
+      'francois2metz/scalingo': {}
+    });
+    expect(exec.exec).toHaveBeenCalledWith('steampipe', ['plugin', 'install', 'github', 'francois2metz/scalingo']);
+  });
+
+  it('install nothing with undefined', async () => {
+    await installSteampipePlugins(undefined);
+    expect(exec.exec).not.toHaveBeenCalled();
+  });
+
+  it('install nothing with empty plugins', async () => {
+    await installSteampipePlugins({});
+    expect(exec.exec).not.toHaveBeenCalled();
+  });
+});
+
+jest.mock('fs');
+
+describe('configureSteampipePlugins', () => {
+  beforeEach(() => {
+    fs.promises.mkdir = jest.fn().mockResolvedValue();
+    fs.promises.writeFile = jest.fn().mockResolvedValue();
+    fs.promises.unlink = jest.fn().mockResolvedValue();
+  });
+
+  it('configure the plugins', async () => {
+    await configureSteampipePlugins({
+      github: { token: 'test' },
+      'francois2metz/scalingo': { token: 'test2' }
+    });
+    expect(fs.promises.mkdir).toHaveBeenCalledWith(process.env.HOME + '/.steampipe/config', { recursive: true });
+    expect(fs.promises.writeFile).toHaveBeenCalledWith(process.env.HOME + '/.steampipe/config/github.json', '{"connection":{"github":{"token":"test","plugin":"github"}}}');
+    expect(fs.promises.writeFile).toHaveBeenCalledWith(process.env.HOME + '/.steampipe/config/scalingo.json', '{"connection":{"scalingo":{"token":"test2","plugin":"francois2metz/scalingo"}}}');
+    expect(fs.promises.unlink).toHaveBeenCalledWith(process.env.HOME + '/.steampipe/config/github.spc');
+    expect(fs.promises.unlink).toHaveBeenCalledWith(process.env.HOME + '/.steampipe/config/scalingo.spc');
+  });
+});
+
+
+describe('getSteampipePluginConfig', () => {
+  it('returns the config for the plugin', async () => {
+    const config = getSteampipePluginConfig('github', { token: 'test' });
+    expect(config).toEqual({
+      connection: {
+        github: {
+          plugin: 'github',
+          token: 'test'
+        }
+      }
+    });
+  });
+
+  it('returns multiple connections per plugin', async () => {
+    const config =  getSteampipePluginConfig('github', [{ token: 'test' }, { token: 'test2' }]);
+    expect(config).toEqual({
+      connection: {
+        github1: {
+          plugin: 'github',
+          token: 'test'
+        },
+        github2: {
+          plugin: 'github',
+          token: 'test2'
+        }
+      }
+    });
+  });
+
+  it('returns config for third party plugins', async () => {
+    const config = await getSteampipePluginConfig('francois2metz/scalingo', { token: 'test' });
+    expect(config).toEqual({
+      connection: {
+        scalingo: {
+          plugin: 'francois2metz/scalingo',
+          token: 'test'
+        },
+      }
+    });
+  });
+
+  it('returns config for plugins with specific version', async () => {
+    const config = await getSteampipePluginConfig('github:0.1', { token: 'test' });
+    expect(config).toEqual({
+      connection: {
+        github: {
+          plugin: 'github:0.1',
+          token: 'test'
+        },
+      }
+    });
   });
 });

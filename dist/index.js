@@ -9,7 +9,10 @@ const tc = __nccwpck_require__(7784);
 const process = __nccwpck_require__(1765);
 const semver = __nccwpck_require__(1383);
 const https = __nccwpck_require__(7211);
+const { promises: fsPromises } = __nccwpck_require__(5747);
+const path = __nccwpck_require__(5622);
 const semverPrerelease = __nccwpck_require__(6014);
+const exec = __nccwpck_require__(1514);
 
 const supportedPlatforms = ['linux', 'darwin'];
 const supportedArchs = ['x64', 'arm64'];
@@ -154,11 +157,65 @@ async function installSteampipe(steampipeVersion) {
   }
 }
 
+async function installSteampipePlugins(plugins) {
+  if (plugins && Object.keys(plugins).length > 0) {
+    await exec.exec('steampipe', ['plugin', 'install', ...Object.keys(plugins)]);
+  }
+}
+
+function getPluginShortName(name) {
+  return ((n) => n[n.length -1].split(':')[0])(name.split('/'));
+}
+
+async function configureSteampipePlugins(plugins) {
+  if (plugins && Object.keys(plugins).length > 0) {
+    const baseConfigPath = path.join(process.env.HOME, '.steampipe', 'config');
+
+    await fsPromises.mkdir(baseConfigPath, { recursive: true });
+
+    await Promise.all(Object.keys(plugins).map(async (plugin) => {
+      const config = getSteampipePluginConfig(plugin, plugins[plugin]);
+
+      await fsPromises.writeFile(path.join(baseConfigPath, getPluginShortName(plugin) + '.json'), JSON.stringify(config));
+      try {
+        await fsPromises.unlink(path.join(baseConfigPath, getPluginShortName(plugin) + '.spc'));
+      } catch (e) {}
+    }));
+  }
+}
+
+function getSteampipePluginConfig(name, config) {
+  const shortName = getPluginShortName(name);
+  if (Array.isArray(config)) {
+    let index = 1;
+    return {
+      connection: config.reduce((memo, config) => {
+        memo[`${shortName}${index++}`] = {
+          ...config,
+          plugin: name
+        };
+        return memo;
+      }, {})
+    };
+  }
+  return {
+    connection: {
+      [shortName]: {
+        ...config,
+        plugin: name
+      }
+    }
+  };
+}
+
 module.exports = {
   checkPlatform,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
+  installSteampipePlugins,
+  configureSteampipePlugins,
+  getSteampipePluginConfig,
 };
 
 
@@ -9240,12 +9297,15 @@ const {
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
+  installSteampipePlugins,
+  configureSteampipePlugins,
 } = __nccwpck_require__(7968);
 
 async function run() {
   try {
     checkPlatform();
     const version = core.getInput('steampipe-version', { required: false });
+    const plugins = JSON.parse(core.getInput('steampipe-plugins') || '{}');
 
     const steampipeVersions = await getSteampipeVersions();
     const versionToInstall = getVersionFromSpec(version, steampipeVersions);
@@ -9256,6 +9316,9 @@ async function run() {
 
     const steampipePath = await installSteampipe(versionToInstall);
     core.addPath(steampipePath);
+
+    await installSteampipePlugins(plugins);
+    await configureSteampipePlugins(plugins);
 
     core.setOutput('steampipe-version', versionToInstall);
   } catch (error) {

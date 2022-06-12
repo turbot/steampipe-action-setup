@@ -3,7 +3,10 @@ const tc = require('@actions/tool-cache');
 const process = require('process');
 const semver = require('semver');
 const https = require('https');
+const { promises: fsPromises } = require('fs');
+const path = require('path');
 const semverPrerelease = require('semver/functions/prerelease');
+const exec = require('@actions/exec');
 
 const supportedPlatforms = ['linux', 'darwin'];
 const supportedArchs = ['x64', 'arm64'];
@@ -148,9 +151,63 @@ async function installSteampipe(steampipeVersion) {
   }
 }
 
+async function installSteampipePlugins(plugins) {
+  if (plugins && Object.keys(plugins).length > 0) {
+    await exec.exec('steampipe', ['plugin', 'install', ...Object.keys(plugins)]);
+  }
+}
+
+function getPluginShortName(name) {
+  return ((n) => n[n.length -1].split(':')[0])(name.split('/'));
+}
+
+async function configureSteampipePlugins(plugins) {
+  if (plugins && Object.keys(plugins).length > 0) {
+    const baseConfigPath = path.join(process.env.HOME, '.steampipe', 'config');
+
+    await fsPromises.mkdir(baseConfigPath, { recursive: true });
+
+    await Promise.all(Object.keys(plugins).map(async (plugin) => {
+      const config = getSteampipePluginConfig(plugin, plugins[plugin]);
+
+      await fsPromises.writeFile(path.join(baseConfigPath, getPluginShortName(plugin) + '.json'), JSON.stringify(config));
+      try {
+        await fsPromises.unlink(path.join(baseConfigPath, getPluginShortName(plugin) + '.spc'));
+      } catch (e) {}
+    }));
+  }
+}
+
+function getSteampipePluginConfig(name, config) {
+  const shortName = getPluginShortName(name);
+  if (Array.isArray(config)) {
+    let index = 1;
+    return {
+      connection: config.reduce((memo, config) => {
+        memo[`${shortName}${index++}`] = {
+          ...config,
+          plugin: name
+        };
+        return memo;
+      }, {})
+    };
+  }
+  return {
+    connection: {
+      [shortName]: {
+        ...config,
+        plugin: name
+      }
+    }
+  };
+}
+
 module.exports = {
   checkPlatform,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
+  installSteampipePlugins,
+  configureSteampipePlugins,
+  getSteampipePluginConfig,
 };

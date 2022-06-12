@@ -10,6 +10,8 @@ inputs:
   steampipe-version:
     description: Version range or exact version of Steampipe to use.
     default: 'latest'
+  steampipe-plugins:
+    description: The plugins to install and configure.
 outputs:
   steampipe-version:
     description: Exact version of Steampipe that was installed
