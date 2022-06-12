@@ -1,0 +1,18 @@
+---
+name: Setup Steampipe
+description: >
+  Set up a specific version of Steampipe and add the command-line tools to the PATH
+author: François de Metz
+branding:
+  color: blue
+  icon: code
+inputs:
+  steampipe-version:
+    description: Version range or exact version of Steampipe to use.
+    default: 'latest'
+outputs:
+  steampipe-version:
+    description: Exact version of Steampipe that was installed
+runs:
+  using: node16
+  main: dist/index.js
