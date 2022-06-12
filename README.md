@@ -24,7 +24,7 @@ The steampipe version installed.
 
 ## Example usage
 
-```
+```yaml
 steps:
 - uses: actions/checkout@v3
 - uses: francois2metz/setup-steampipe@v1
