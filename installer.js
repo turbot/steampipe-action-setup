@@ -2,6 +2,7 @@ const core = require('@actions/core');
 const process = require('process');
 const semver = require('semver');
 const https = require('https');
+const semverPrerelease = require('semver/functions/prerelease');
 
 const supportedPlatforms = ['linux', 'darwin'];
 const supportedArchs = ['x64', 'arm64'];
@@ -89,8 +90,11 @@ function getVersionFromSpec(versionSpec, versions) {
   });
 
   if (versionSpec === 'latest') {
-    core.debug('Get lastest version');
-    return versions[versions.length - 1];
+    core.debug('Get latest version');
+    const filtered = versions.filter((version) => {
+      return !semverPrerelease(version);
+    });
+    return filtered[filtered.length - 1];
   }
 
   for (let i = versions.length - 1; i >= 0; i--) {

@@ -8,6 +8,7 @@ const core = __nccwpck_require__(2186);
 const process = __nccwpck_require__(1765);
 const semver = __nccwpck_require__(1383);
 const https = __nccwpck_require__(7211);
+const semverPrerelease = __nccwpck_require__(6014);
 
 const supportedPlatforms = ['linux', 'darwin'];
 const supportedArchs = ['x64', 'arm64'];
@@ -95,8 +96,11 @@ function getVersionFromSpec(versionSpec, versions) {
   });
 
   if (versionSpec === 'latest') {
-    core.debug('Get lastest version');
-    return versions[versions.length - 1];
+    core.debug('Get latest version');
+    const filtered = versions.filter((version) => {
+      return !semverPrerelease(version);
+    });
+    return filtered[filtered.length - 1];
   }
 
   for (let i = versions.length - 1; i >= 0; i--) {

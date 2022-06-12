@@ -54,9 +54,11 @@ describe('getVersionFromSpec', () => {
     'v0.11.0-rc.0',   'v0.11.0-rc.1',   'v0.11.0-rc.2',
     'v0.11.1',        'v0.11.2',        'v0.12.0',
     'v0.12.0-rc.0',   'v0.12.0-rc.1',   'v0.12.1',
+    'v0.13.0-rc.0'
   ];
 
   it('returns the version', () => {
+    expect(getVersionFromSpec('', steampipeVersions)).toEqual('v0.12.1');
     expect(getVersionFromSpec('v0.10.0', steampipeVersions)).toEqual('v0.10.0');
     expect(getVersionFromSpec('latest', steampipeVersions)).toEqual('v0.12.1');
     expect(getVersionFromSpec('^v0.11', steampipeVersions)).toEqual('v0.11.2');
