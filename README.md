@@ -37,11 +37,11 @@ steps:
         },
         "francois2metz/scalingo": [
           { "type": "aggregator",
-             "connections": ["scalingo1", "scalingo2"] },
+            "connections": ["scalingo2", "scalingo3"] },
           { "token": "${{ secrets.SCALINGO_TOKEN }}",
             "regions": ["osc-fr1"] },
           { "token": "${{ secrets.SCALINGO_SECNUM_TOKEN }}",
-            "regions": ["osc-fr1", osc-secnum-fr1"] }
+            "regions": ["osc-fr1", "osc-secnum-fr1"] }
         ]
       }
 - name: Run checks
