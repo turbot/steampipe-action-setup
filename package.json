@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/francois2metz/setup-steampipe#readme",
   "dependencies": {
-    "@actions/core": "^1.2.5",
+    "@actions/core": "^1.9.0",
     "@actions/tool-cache": "^2.0.1",
     "semver": "^7.3.7"
   },
