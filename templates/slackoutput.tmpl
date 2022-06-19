@@ -1,0 +1,126 @@
+{{ define "output" }}
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Steampipe errors."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": ":white_check_mark: {{ .Data.Root.Summary.Status.PassedCount }}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "⇨ {{ .Data.Root.Summary.Status.Skip }}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": " ℹ {{ .Data.Root.Summary.Status.Info }}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "❌ {{ .Data.Root.Summary.Status.Alarm }}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": " ❗ {{ .Data.Root.Summary.Status.Error }}"
+        }
+      ]
+    },
+    {{ range .Data.Root.Groups -}}
+      {{ template "group_template" . -}}
+    {{ end }}
+    {{ range .Data.Root.ControlRuns -}}
+      {{ template "control_run_template" . -}}
+    {{ end }}
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "See <##SERVER_URL##/##REPOSITORY##/actions/runs/##RUN_ID##|the result on GitHub>."
+       }
+    }
+  ]
+}
+{{ end }}
+
+{{ define "group_template"}}
+{{ if .ControlRuns }}
+{{ range .ControlRuns -}}
+{{ template "control_run_template" . -}}
+{{ end -}}
+{{ end -}}
+{{ range .Groups -}}
+{{ template "group_template" . -}}
+{{ end -}}
+{{ end -}}
+
+{{ define "control_run_template"}}
+    {{- if gt .Summary.FailedCount 0 -}}
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "{{ .Title }}",
+        "emoji": true
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {{- end -}}
+{{ if .GetError }}
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "❌ {{- js .GetError -}}"
+        }
+      ]
+    },
+{{ else }}
+{{ $length := len .Rows }}
+{{- range .Rows }}
+{{- template "control_row_template" . -}}
+{{ end -}}
+{{ end }}
+{{ end }}
+
+{{ define "control_row_template" }}
+    {{- if or (eq .Status "alarm") (eq .Status "alarm") -}}
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "{{ template "statusicon" .Status }} {{ .Reason }}"
+        }
+      ]
+    },
+    {{- end -}}
+{{- end }}
+
+{{ define "statusicon" }}
+  {{- if eq . "ok" -}}
+    ✅
+  {{- end -}}
+  {{- if eq . "skip" -}}
+    ⇨
+  {{- end -}}
+  {{- if eq . "info" -}}
+    ℹ
+  {{- end -}}
+  {{- if eq . "alarm" -}}
+    ❌
+  {{- end -}}
+  {{- if eq . "error" -}}
+    ❗
+  {{- end -}}
+{{- end -}}
