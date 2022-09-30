@@ -58,7 +58,7 @@ steps:
 ```
 
 Run local controls and post failure on slack with a [custom control output template](https://steampipe.io/docs/develop/writing-control-output-templates).
-The template must be installed before. It's available in the [templates](./templates).
+The template must be installed before. It's available in the [templates directory](./templates).
 
 ```yaml
 steps:
