@@ -1,50 +1,128 @@
-# setup-steampipe
+# Setup Steampipe for GitHub Actions
 
 <p align="center">
-  <a href="https://github.com/francois2metz/setup-steampipe/actions"><img alt="steampipe-action status" src="https://github.com/francois2metz/setup-steampipe/workflows/units-test/badge.svg"></a>
+  <a href="https://github.com/turbot/steampipe-action-setup/actions"><img alt="steampipe-action status" src="https://github.com/turbot/steampipe-action-setup/workflows/units-test/badge.svg"></a>
 </p>
 
-This action install [Steampipe][] and optionally plugins.
+This action installs [Steampipe](https://github.com/turbot/steampipe/) and optionally installs plugins and creates plugin connection configurations.
 
-## Inputs
+## Usage
 
-## `steampipe-version`
+See [action.yml](action.yml).
 
-The steampipe version range or exact version to install. Default `"latest"`.
+## Examples
 
-## `steampipe-plugins`
+### Install the latest version Steampipe
 
-Plugins with config to install and configure as JSON.
+```yaml
+- name: Install Steampipe
+  uses: turbot/steampipe-action-setup
+```
 
-## Outputs
+### Install a specific version of Steampipe
 
-## `steampipe-version`
+```yaml
+- name: Install Steampipe v0.19.4
+  uses: turbot/steampipe-action-setup
+  with:
+    version: 0.19.4
+```
 
-The steampipe version installed.
+> For available Steampipe versions refer to [Steampipe Releases](https://github.com/turbot/steampipe/releases).
 
-## Example usage
+### Configure multiple AWS connections
 
-Run local controls:
+```yaml
+- name: Setup Steampipe
+  uses: turbot/steampipe-action-setup
+  with:
+    connections: |
+      connection "aws_prod" {
+        plugin     = "aws"
+        secret_key = "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}"
+        access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}"
+        regions    = ["us-east-1", "us-west-2"]
+      }
+
+      connection "aws_dev" {
+        plugin     = "aws"
+        secret_key = "${{ secrets.AWS_ACCESS_KEY_ID_DEV }}"
+        access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}"
+        regions    = ["*"]
+      }
+
+- name: Run queries
+  run: |
+    steampipe query "select * from aws_prod.aws_account"
+    steampipe query "select * from aws_dev.aws_account"
+```
+
+### Install a specific plugin version
+
+```yaml
+- name: Setup Steampipe
+  uses: turbot/steampipe-action-setup
+  with:
+    connections: |
+      connection "net" {
+        plugin = "net@0.7"
+      }
+- name: Run a query
+  run: steampipe query "select issuer, not_after as exp_date from net_certificate where domain = 'github.com'"
+```
+
+### Create a connection with JSON
+
+```yaml
+- name: Setup Steampipe
+  uses: turbot/steampipe-action-setup
+  with:
+    connections: |
+      {
+        "connection": {
+          "aws_dev": {
+            "plugin": "aws",
+            "profile": "default",
+            "regions": ["us-east-1", "eu-west-1"]
+          }
+        }
+      }
+- name: Run a query
+  run: steampipe query "select name from aws_s3_bucket"
+```
+
+## Advanced Examples
+
+### Run local controls
 
 ```yaml
 steps:
   - uses: actions/checkout@v3
-  - uses: francois2metz/setup-steampipe@v1
+  - uses: turbot/steampipe-action-setup@v1
     with:
       steampipe-version: 'latest'
-      steampipe-plugins: |
-        {
-          "github": {
-            "token": "${{ secrets.GITHUB_TOKEN }}"
-          },
-          "francois2metz/scalingo": [
-            { "type": "aggregator",
-              "connections": ["scalingo2", "scalingo3"] },
-            { "token": "${{ secrets.SCALINGO_TOKEN }}",
-              "regions": ["osc-fr1"] },
-            { "token": "${{ secrets.SCALINGO_SECNUM_TOKEN }}",
-              "regions": ["osc-fr1", "osc-secnum-fr1"] }
-          ]
+      plugin-connections: |
+        connection "github" {
+          plugin = "github"
+          token  = "${{ secrets.GITHUB_TOKEN }}"
+        }
+
+        connection "scalingo" {
+          plugin      = "francois2metz/scalingo"
+          type        = "aggregator"
+          connections = ["scalingo2", "scalingo3"]
+        }
+
+        connection "scalingo2" {
+          plugin  = "francois2metz/scalingo"
+          token   = "${{ secrets.SCALINGO_TOKEN }}"
+          regions = ["osc-fr1"]
+        }
+
+        connection "scalingo3" {
+          plugin  = "francois2metz/scalingo"
+          token   = "${{ secrets.SCALINGO_SECNUM_TOKEN }}"
+          regions = ["osc-fr1", "osc-secnum-fr1"]
         }
   - name: Run checks
     id: checks
@@ -63,22 +141,31 @@ The template must be installed before. It's available in the [templates director
 ```yaml
 steps:
   - uses: actions/checkout@v3
-  - uses: francois2metz/setup-steampipe@v1
+  - uses: turbot/steampipe-action-setup@v1
     with:
       steampipe-version: 'latest'
-      steampipe-plugins: |
-        {
-          "github": {
-            "token": "${{ secrets.GITHUB_TOKEN }}"
-          },
-          "francois2metz/scalingo": [
-            { "type": "aggregator",
-              "connections": ["scalingo2", "scalingo3"] },
-            { "token": "${{ secrets.SCALINGO_TOKEN }}",
-              "regions": ["osc-fr1"] },
-            { "token": "${{ secrets.SCALINGO_SECNUM_TOKEN }}",
-              "regions": ["osc-fr1", "osc-secnum-fr1"] }
-          ]
+      plugin-connections: |
+        connection "github" {
+          plugin = "github"
+          token  = "${{ secrets.GITHUB_TOKEN }}"
+        }
+
+        connection "scalingo" {
+          plugin      = "francois2metz/scalingo"
+          type        = "aggregator"
+          connections = ["scalingo2", "scalingo3"]
+        }
+
+        connection "scalingo2" {
+          plugin  = "francois2metz/scalingo"
+          token   = "${{ secrets.SCALINGO_TOKEN }}"
+          regions = ["osc-fr1"]
+        }
+
+        connection "scalingo3" {
+          plugin  = "francois2metz/scalingo"
+          token   = "${{ secrets.SCALINGO_SECNUM_TOKEN }}"
+          regions = ["osc-fr1", "osc-secnum-fr1"]
         }
   - name: Install slack output template
     run: |
@@ -112,4 +199,7 @@ steps:
     run: exit 1
 ```
 
-[steampipe]: https://github.com/turbot/steampipe/
+## Helpful Links
+
+- [Steampipe docs](https://steampipe.io/docs)
+- [Steampipe plugins](https://hub.steampipe.io/plugins)

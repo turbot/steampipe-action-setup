@@ -1,40 +1,46 @@
-const core = require('@actions/core');
-const tc = require('@actions/tool-cache');
-const process = require('process');
-const semver = require('semver');
-const https = require('https');
-const { promises: fsPromises } = require('fs');
-const path = require('path');
-const semverPrerelease = require('semver/functions/prerelease');
-const exec = require('@actions/exec');
+const core = require("@actions/core");
+const tc = require("@actions/tool-cache");
+const process = require("process");
+const semver = require("semver");
+const hcl = require("js-hcl-parser");
+const https = require("https");
+const { promises: fsPromises } = require("fs");
+const path = require("path");
+const semverPrerelease = require("semver/functions/prerelease");
+const exec = require("@actions/exec");
 
-const supportedPlatforms = ['linux', 'darwin'];
-const supportedArchs = ['x64', 'arm64'];
+const supportedPlatforms = ["linux", "darwin"];
+const supportedArchs = ["x64", "arm64"];
 
 function checkPlatform(p = process) {
   if (!supportedPlatforms.includes(p.platform)) {
     throw new Error(
-      `francois2metz/setup-steampipe only supports ${supportedPlatforms.join(' and ')} on ${supportedArchs.join(' and ')} at this time`,
-    )
+      `turbot/steampipe-action-setup only supports ${supportedPlatforms.join(
+        " and "
+      )} on ${supportedArchs.join(" and ")} at this time`
+    );
   }
   if (!supportedArchs.includes(p.arch)) {
     throw new Error(
-      `francois2metz/setup-steampipe only supports ${supportedPlatforms.join(' and ')} on ${supportedArchs.join(' and ')} at this time`,
-    )
+      `turbot/steampipe-action-setup only supports ${supportedPlatforms.join(
+        " and "
+      )} on ${supportedArchs.join(" and ")} at this time`
+    );
   }
 }
 
+// TODO: Do we need more than 3 pages?
 async function getSteampipeVersions() {
   const resultJSONs = await get(
-    'https://api.github.com/repos/turbot/steampipe/releases?per_page=100',
-    [1, 2, 3],
-  )
-  const steampipeVersionListing = []
+    "https://api.github.com/repos/turbot/steampipe/releases?per_page=100",
+    [1, 2, 3]
+  );
+  const steampipeVersionListing = [];
   resultJSONs.forEach((resultJSON) => {
     JSON.parse(resultJSON)
       .map((x) => x.tag_name)
       .sort()
-      .forEach((v) => steampipeVersionListing.push(v))
+      .forEach((v) => steampipeVersionListing.push(v));
   });
   return steampipeVersionListing;
 }
@@ -42,50 +48,50 @@ async function getSteampipeVersions() {
 async function get(url0, pageIdxs) {
   function getPage(pageIdx) {
     return new Promise((resolve, reject) => {
-      const url = new URL(url0)
+      const url = new URL(url0);
       if (pageIdx !== null) {
-        url.searchParams.append('page', pageIdx)
+        url.searchParams.append("page", pageIdx);
       }
       https
         .get(
           url,
           {
-            headers: { 'user-agent': 'setup-steampipe' },
+            headers: { "user-agent": "setup-steampipe" },
           },
           (res) => {
-            let data = ''
-            res.on('data', (chunk) => {
-              data += chunk
-            })
-            res.on('end', () => {
+            let data = "";
+            res.on("data", (chunk) => {
+              data += chunk;
+            });
+            res.on("end", () => {
               if (res.statusCode >= 400 && res.statusCode <= 599) {
                 reject(
                   new Error(
-                    `Got ${res.statusCode} from ${url}. Exiting with error`,
-                  ),
-                )
+                    `Got ${res.statusCode} from ${url}. Exiting with error`
+                  )
+                );
               } else {
-                resolve(data)
+                resolve(data);
               }
-            })
-          },
+            });
+          }
         )
-        .on('error', (err) => {
-          reject(err)
-        })
-    })
+        .on("error", (err) => {
+          reject(err);
+        });
+    });
   }
-  let ret
+  let ret;
   if (pageIdxs[0] === null) {
-    ret = getPage(null)
+    ret = getPage(null);
   } else {
-    ret = Promise.all(pageIdxs.map((pageIdx) => getPage(pageIdx)))
+    ret = Promise.all(pageIdxs.map((pageIdx) => getPage(pageIdx)));
   }
-  return ret
+  return ret;
 }
 
 function getVersionFromSpec(versionSpec, versions) {
-  let version = '';
+  let version = "";
   versions.sort((a, b) => {
     if (semver.gt(a, b)) {
       return 1;
@@ -93,8 +99,8 @@ function getVersionFromSpec(versionSpec, versions) {
     return -1;
   });
 
-  if (versionSpec === 'latest') {
-    core.debug('Get latest version');
+  if (versionSpec === "latest") {
+    core.info("Getting latest Steampipe CLI version");
     const filtered = versions.filter((version) => {
       return !semverPrerelease(version);
     });
@@ -111,16 +117,16 @@ function getVersionFromSpec(versionSpec, versions) {
   }
 
   if (version) {
-    core.debug(`matched: ${version}`);
+    core.debug(`Matched Steampipe CLI version: ${version}`);
   } else {
-    core.debug('match not found');
+    core.debug(`Steampipe CLI version match not found for ${versionSpec}`);
   }
 
   return version;
 }
 
 async function installSteampipe(steampipeVersion) {
-  const toolPath = tc.find('steampipe', steampipeVersion, process.arch);
+  const toolPath = tc.find("steampipe", steampipeVersion, process.arch);
 
   if (toolPath) {
     core.info(`Found in cache @ ${toolPath}`);
@@ -128,53 +134,188 @@ async function installSteampipe(steampipeVersion) {
   } else {
     const targets = {
       linux: {
-        x64: 'linux_amd64.tar.gz',
-        arm64: 'linux_arm64.tar.gz',
+        x64: "linux_amd64.tar.gz",
+        arm64: "linux_arm64.tar.gz",
       },
       darwin: {
-        x64: 'darwin_amd64.zip',
-	arm64: 'darwin_arm64.zip',
-      }
+        x64: "darwin_amd64.zip",
+        arm64: "darwin_arm64.zip",
+      },
     };
     const target = targets[process.platform][process.arch];
 
-    const steampipeArchivePath = await tc.downloadTool(`https://github.com/turbot/steampipe/releases/download/${steampipeVersion}/steampipe_${target}`);
+    const downloadUrl = `https://github.com/turbot/steampipe/releases/download/${steampipeVersion}/steampipe_${target}`;
+    core.info(`Steampipe download URL: ${downloadUrl.toString()}`);
+
+    const steampipeArchivePath = await tc.downloadTool(downloadUrl);
     const extractFolder = await (async () => {
-      if (process.platform === 'linux') {
+      if (process.platform === "linux") {
         return tc.extractTar(steampipeArchivePath);
       } else {
         return tc.extractZip(steampipeArchivePath);
       }
     })();
 
-    return (await tc.cacheDir(extractFolder, 'steampipe', steampipeVersion, process.arch));
+    return await tc.cacheDir(
+      extractFolder,
+      "steampipe",
+      steampipeVersion,
+      process.arch
+    );
   }
 }
 
-async function installSteampipePlugins(plugins) {
-  if (plugins && Object.keys(plugins).length > 0) {
-    await exec.exec('steampipe', ['plugin', 'install', ...Object.keys(plugins)]);
+function getPluginsToInstall(connections) {
+  const configType = getConfigType(connections);
+
+  let connHclParsed, connJsonParsed, connData;
+  let pluginsToInstall = [];
+  switch (configType) {
+    /*
+     * Sample JSON connection config:
+     * {
+     *   "connection": {
+     *     "net": {
+     *       "plugin": "net"
+     *     },
+     *     "net_2": {
+     *       "plugin": "net"
+     *     },
+     *     "hackernews": {
+     *       "plugin": "hackernews"
+     *     }
+     *   }
+     * }
+     */
+    case "json":
+      try {
+        connJsonParsed = JSON.parse(connections);
+        if (!Object.getOwnPropertyDescriptor(connJsonParsed, "connection")) {
+          throw new Error(
+            "Missing 'connection' key in plugin-connections input"
+          );
+        }
+
+        connData = connJsonParsed["connection"];
+        pluginsToInstall = Object.keys(connData).map((k) => connData[k].plugin);
+      } catch (err) {
+        core.warning("Failed to get plugins to install from JSON config");
+        throw err;
+      }
+      break;
+
+    /*
+     * Sample HCL connection config:
+     * connection "net" {
+     *   plugin = "net"
+     *   timeout = 3000
+     * }
+     * connection "net_2" {
+     *   plugin = "net"
+     *   timeout = 100
+     * }
+     * connection "hackernews" {
+     *   plugin = "hackernews"
+     * }
+     */
+    case "hcl":
+      try {
+        connHclParsed = hcl.parse(connections);
+        connJsonParsed = JSON.parse(connHclParsed);
+
+        if (!Object.getOwnPropertyDescriptor(connJsonParsed, "connection")) {
+          throw new Error(
+            "Missing 'connection' key in plugin-connections input"
+          );
+        }
+
+        connData = connJsonParsed["connection"];
+
+        /* Sample HCL to JSON connection config:
+         * [{
+         *  "net": [{
+         *   "plugin": "net",
+         *   "timeout": 3000
+         *  }]
+         * }, {
+         * "net_2": [{
+         *   "plugin": "net",
+         *   "timeout": 100
+         * }]
+         * }, {
+         * "hackernews": [{
+         *   "plugin": "hackernews"
+         *  }]
+         * }]
+         */
+        for (const conn of connData) {
+          for (const connName in conn) {
+            const subArray = conn[connName];
+            for (const connArgs of subArray) {
+              const plugin = connArgs.plugin;
+              pluginsToInstall.push(plugin);
+            }
+          }
+        }
+      } catch (err) {
+        core.warning("Failed to get plugins to install from HCL config");
+        throw err;
+      }
+
+      break;
+    default:
+      throw new Error("Unknown connection config format");
   }
+
+  const uniquePluginsToInstall = [...new Set(pluginsToInstall)];
+  if (uniquePluginsToInstall.length == 0) {
+    throw new Error("No plugins specified in plugin-connections input");
+  }
+
+  return uniquePluginsToInstall;
+}
+
+async function installSteampipePlugins(plugins, steampipeVersion) {
+  if (!plugins || plugins.length == 0) {
+    core.info(`No plugins to install`);
+    return Promise.resolve();
+  }
+  core.info(`Installing plugins: ${plugins}`);
+
+  const args = ["plugin", "install", ...plugins];
+  if (semver.satisfies(steampipeVersion, ">=0.20.0")) {
+    args.push("--progress=false");
+  }
+  await exec.exec("steampipe", args);
 }
 
 function getPluginShortName(name) {
-  return ((n) => n[n.length -1].split(':')[0])(name.split('/'));
+  return ((n) => n[n.length - 1].split(":")[0])(name.split("/"));
 }
 
 async function configureSteampipePlugins(plugins) {
   if (plugins && Object.keys(plugins).length > 0) {
-    const baseConfigPath = path.join(process.env.HOME, '.steampipe', 'config');
+    const baseConfigPath = path.join(process.env.HOME, ".steampipe", "config");
 
     await fsPromises.mkdir(baseConfigPath, { recursive: true });
 
-    await Promise.all(Object.keys(plugins).map(async (plugin) => {
-      const config = getSteampipePluginConfig(plugin, plugins[plugin]);
+    await Promise.all(
+      Object.keys(plugins).map(async (plugin) => {
+        const config = getSteampipePluginConfig(plugin, plugins[plugin]);
 
-      await fsPromises.writeFile(path.join(baseConfigPath, getPluginShortName(plugin) + '.json'), JSON.stringify(config));
-      try {
-        await fsPromises.unlink(path.join(baseConfigPath, getPluginShortName(plugin) + '.spc'));
-      } catch (e) {}
-    }));
+        await fsPromises.writeFile(
+          path.join(baseConfigPath, getPluginShortName(plugin) + ".json"),
+          JSON.stringify(config)
+        );
+        try {
+          await fsPromises.unlink(
+            path.join(baseConfigPath, getPluginShortName(plugin) + ".spc")
+          );
+        } catch (e) {
+          // ignore error
+        }
+      })
+    );
   }
 }
 
@@ -186,28 +327,88 @@ function getSteampipePluginConfig(name, config) {
       connection: config.reduce((memo, config) => {
         memo[`${shortName}${index++}`] = {
           ...config,
-          plugin: name
+          plugin: name,
         };
         return memo;
-      }, {})
+      }, {}),
     };
   }
   return {
     connection: {
       [shortName]: {
         ...config,
-        plugin: name
-      }
-    }
+        plugin: name,
+      },
+    },
   };
+}
+
+async function setupConnections(connections) {
+  await writeConnections(connections);
+  core.info(`Executing query to initialize connections`);
+  await exec.exec("steampipe", ["query", "select 1"]);
+}
+
+async function deleteDefaultPluginConfigs(plugins) {
+  core.info("Deleting default plugin connection files in ~/.steampipe/config/");
+
+  for (const plugin of plugins) {
+    await fsPromises.unlink(
+      `${process.env.HOME}/.steampipe/config/${plugin}.spc`
+    );
+  }
+}
+
+async function writeConnections(connections) {
+  let configType = getConfigType(connections);
+  let filePath = `${process.env.HOME}/.steampipe/config/connections`;
+  let fileExtension;
+  switch (configType) {
+    case "json":
+      fileExtension = ".json";
+      break;
+    case "hcl":
+      fileExtension = ".spc";
+      break;
+    default:
+      throw new Error("Unknown connection config format");
+  }
+
+  filePath += fileExtension;
+  core.info(`Writing connections into ${filePath}`);
+  await fsPromises.writeFile(filePath, connections);
+}
+
+function getConfigType(connections) {
+  try {
+    JSON.parse(connections);
+    return "json";
+    // Ignore errors so we can check if it's HCL
+  } catch (err) {
+    // ignore error
+  }
+
+  try {
+    hcl.parse(connections);
+    return "hcl";
+    // Ignore errors so we can return unknown
+  } catch (err) {
+    // ignore error
+  }
+
+  // Not JSON or HCL
+  return "unknown";
 }
 
 module.exports = {
   checkPlatform,
+  deleteDefaultPluginConfigs,
+  getPluginsToInstall,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
   installSteampipePlugins,
   configureSteampipePlugins,
   getSteampipePluginConfig,
+  setupConnections,
 };

@@ -11,21 +11,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/francois2metz/setup-steampipe.git"
+    "url": "git+https://github.com/turbot/steampipe-action-setup.git"
   },
-  "keywords": [
-    "Steampipe",
-    "Actions"
-  ],
-  "author": "François de Metz",
-  "license": "MIT",
+  "keywords": ["Steampipe", "Actions"],
+  "author": "François de Metz and Turbot",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/francois2metz/setup-steampipe/issues"
+    "url": "https://github.com/turbot/steampipe-action-setup/issues"
   },
-  "homepage": "https://github.com/francois2metz/setup-steampipe#readme",
+  "homepage": "https://github.com/turbot/steampipe-action-setup#readme",
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/tool-cache": "^2.0.1",
+    "js-hcl-parser": "^1.0.1",
     "semver": "^7.5.3"
   },
   "devDependencies": {
