@@ -5,15 +5,15 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
-const tc = __nccwpck_require__(7784);
-const process = __nccwpck_require__(7282);
-const semver = __nccwpck_require__(1383);
+const exec = __nccwpck_require__(1514);
 const hcl = __nccwpck_require__(1531);
 const https = __nccwpck_require__(5687);
-const { promises: fsPromises } = __nccwpck_require__(7147);
 const path = __nccwpck_require__(1017);
+const process = __nccwpck_require__(7282);
+const semver = __nccwpck_require__(1383);
 const semverPrerelease = __nccwpck_require__(4016);
-const exec = __nccwpck_require__(1514);
+const tc = __nccwpck_require__(7784);
+const { promises: fsPromises } = __nccwpck_require__(7147);
 
 const supportedPlatforms = ["linux", "darwin"];
 const supportedArchs = ["x64", "arm64"];
@@ -35,7 +35,7 @@ function checkPlatform(p = process) {
   }
 }
 
-// TODO: Do we need more than 3 pages?
+// TODO: List all releases, not just the first 3 pages
 async function getSteampipeVersions() {
   const resultJSONs = await get(
     "https://api.github.com/repos/turbot/steampipe/releases?per_page=100",
@@ -125,7 +125,7 @@ function getVersionFromSpec(versionSpec, versions) {
   if (version) {
     core.debug(`Matched Steampipe CLI version: ${version}`);
   } else {
-    core.debug(`Steampipe CLI version match not found for ${versionSpec}`);
+    core.debug(`No matching Steampipe CLI version found for ${versionSpec}`);
   }
 
   return version;
@@ -171,8 +171,87 @@ async function installSteampipe(steampipeVersion) {
   }
 }
 
+async function installSteampipePlugins(plugins, steampipeVersion) {
+  if (!plugins || plugins.length == 0) {
+    throw new Error("No plugins identified");
+  }
+
+  core.info(`Installing plugins: ${plugins}`);
+
+  const args = ["plugin", "install", ...plugins];
+
+  // The progress flag is only available >=0.20.0 and helps hide noisy progress
+  // bars
+  if (semver.satisfies(steampipeVersion, ">=0.20.0")) {
+    args.push("--progress=false");
+  }
+  await exec.exec("steampipe", args);
+}
+
+/*
+ * steampipe-plugins input related functions
+ */
+
+async function configureSteampipePlugins(plugins) {
+  if (plugins && Object.keys(plugins).length > 0) {
+    const baseConfigPath = path.join(process.env.HOME, ".steampipe", "config");
+
+    await fsPromises.mkdir(baseConfigPath, { recursive: true });
+
+    await Promise.all(
+      Object.keys(plugins).map(async (plugin) => {
+        const config = getSteampipePluginConfig(plugin, plugins[plugin]);
+
+        await fsPromises.writeFile(
+          path.join(baseConfigPath, getPluginShortName(plugin) + ".json"),
+          JSON.stringify(config)
+        );
+        try {
+          await fsPromises.unlink(
+            path.join(baseConfigPath, getPluginShortName(plugin) + ".spc")
+          );
+        } catch (e) {
+          // ignore error
+        }
+      })
+    );
+  }
+}
+
+function getPluginShortName(name) {
+  return ((n) => n[n.length - 1].split(":")[0])(name.split("/"));
+}
+
+function getSteampipePluginConfig(name, config) {
+  const shortName = getPluginShortName(name);
+  if (Array.isArray(config)) {
+    let index = 1;
+    return {
+      connection: config.reduce((memo, config) => {
+        memo[`${shortName}${index++}`] = {
+          ...config,
+          plugin: name,
+        };
+        return memo;
+      }, {}),
+    };
+  }
+  return {
+    connection: {
+      [shortName]: {
+        ...config,
+        plugin: name,
+      },
+    },
+  };
+}
+
+/*
+ * plugin-connections input related functions
+ */
+
 function getPluginsToInstall(connections) {
-  const configType = getConfigType(connections);
+  const configType = getConnConfigType(connections);
 
   let connHclParsed, connJsonParsed, connData;
   let pluginsToInstall = [];
@@ -281,92 +360,18 @@ function getPluginsToInstall(connections) {
   return uniquePluginsToInstall;
 }
 
-async function installSteampipePlugins(plugins, steampipeVersion) {
-  if (!plugins || plugins.length == 0) {
-    core.info(`No plugins to install`);
-    return Promise.resolve();
-  }
-  core.info(`Installing plugins: ${plugins}`);
-
-  const args = ["plugin", "install", ...plugins];
-  if (semver.satisfies(steampipeVersion, ">=0.20.0")) {
-    args.push("--progress=false");
-  }
-  await exec.exec("steampipe", args);
-}
-
-function getPluginShortName(name) {
-  return ((n) => n[n.length - 1].split(":")[0])(name.split("/"));
-}
-
-async function configureSteampipePlugins(plugins) {
-  if (plugins && Object.keys(plugins).length > 0) {
-    const baseConfigPath = path.join(process.env.HOME, ".steampipe", "config");
-
-    await fsPromises.mkdir(baseConfigPath, { recursive: true });
-
-    await Promise.all(
-      Object.keys(plugins).map(async (plugin) => {
-        const config = getSteampipePluginConfig(plugin, plugins[plugin]);
-
-        await fsPromises.writeFile(
-          path.join(baseConfigPath, getPluginShortName(plugin) + ".json"),
-          JSON.stringify(config)
-        );
-        try {
-          await fsPromises.unlink(
-            path.join(baseConfigPath, getPluginShortName(plugin) + ".spc")
-          );
-        } catch (e) {
-          // ignore error
-        }
-      })
-    );
+async function deletePluginConfigs() {
+  core.info("Deleting all files in ~/.steampipe/config/");
+  let contents = await fsPromises.readdir(
+    `${process.env.HOME}/.steampipe/config`
+  );
+  for (const entry of contents) {
+    await fsPromises.unlink(`${process.env.HOME}/.steampipe/config/${entry}`);
   }
 }
 
-function getSteampipePluginConfig(name, config) {
-  const shortName = getPluginShortName(name);
-  if (Array.isArray(config)) {
-    let index = 1;
-    return {
-      connection: config.reduce((memo, config) => {
-        memo[`${shortName}${index++}`] = {
-          ...config,
-          plugin: name,
-        };
-        return memo;
-      }, {}),
-    };
-  }
-  return {
-    connection: {
-      [shortName]: {
-        ...config,
-        plugin: name,
-      },
-    },
-  };
-}
-
-async function setupConnections(connections) {
-  await writeConnections(connections);
-  core.info(`Executing query to initialize connections`);
-  await exec.exec("steampipe", ["query", "select 1"]);
-}
-
-async function deleteDefaultPluginConfigs(plugins) {
-  core.info("Deleting default plugin connection files in ~/.steampipe/config/");
-
-  for (const plugin of plugins) {
-    await fsPromises.unlink(
-      `${process.env.HOME}/.steampipe/config/${plugin}.spc`
-    );
-  }
-}
-
-async function writeConnections(connections) {
-  let configType = getConfigType(connections);
+async function writePluginConnections(connections) {
+  let configType = getConnConfigType(connections);
   let filePath = `${process.env.HOME}/.steampipe/config/connections`;
   let fileExtension;
   switch (configType) {
@@ -385,7 +390,9 @@ async function writeConnections(connections) {
   await fsPromises.writeFile(filePath, connections);
 }
 
-function getConfigType(connections) {
+function getConnConfigType(connections) {
+  // Check for JSON instead of HCL first since the HCL parse method accepts
+  // JSON strings
   try {
     JSON.parse(connections);
     return "json";
@@ -397,26 +404,26 @@ function getConfigType(connections) {
   try {
     hcl.parse(connections);
     return "hcl";
-    // Ignore errors so we can return unknown
+    // Ignore errors so we can return unknown type
   } catch (err) {
     // ignore error
   }
 
-  // Not JSON or HCL
+  // Not HCL or JSON
   return "unknown";
 }
 
 module.exports = {
   checkPlatform,
-  deleteDefaultPluginConfigs,
+  configureSteampipePlugins,
+  deletePluginConfigs,
   getPluginsToInstall,
+  getSteampipePluginConfig,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
   installSteampipePlugins,
-  configureSteampipePlugins,
-  getSteampipePluginConfig,
-  setupConnections,
+  writePluginConnections,
 };
 
 
@@ -10477,24 +10484,26 @@ const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const {
   checkPlatform,
-  deleteDefaultPluginConfigs,
+  configureSteampipePlugins,
+  deletePluginConfigs,
   getPluginsToInstall,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
   installSteampipePlugins,
-  configureSteampipePlugins,
-  setupConnections,
+  writePluginConnections,
 } = __nccwpck_require__(7968);
 
 async function run() {
   try {
     checkPlatform();
+
     const version = core.getInput("steampipe-version", { required: false });
-    const plugins = JSON.parse(core.getInput("steampipe-plugins") || "{}");
     const pluginConns = core.getInput("plugin-connections");
+    const plugins = JSON.parse(core.getInput("steampipe-plugins") || "{}");
     var pluginsToInstall, uniquePluginsToInstall;
 
+    // steampipe-plugins input is deprecated, so error if both inputs are given
     if (pluginConns != "" && Object.keys(plugins).length > 0) {
       throw new Error(
         `Cannot use steampipe-plugins and plugin-connections inputs together`
@@ -10503,27 +10512,31 @@ async function run() {
 
     const steampipeVersions = await getSteampipeVersions();
     const versionToInstall = getVersionFromSpec(version, steampipeVersions);
-    core.info(`Steampipe CLI version: ${versionToInstall}`);
 
     if (!versionToInstall) {
       throw new Error(`Unable to find Steampipe version '${version}'.`);
     }
 
+    core.info(`Steampipe CLI version: ${versionToInstall}`);
     const steampipePath = await installSteampipe(versionToInstall);
+
     core.addPath(steampipePath);
-    core.info(`Added Steampipe CLI to path`);
+    core.debug(`Added Steampipe CLI to path`);
 
     // Run a simple query to start the Steampipe service and initialize the DB
-    core.info(`Initializing Steampipe service`);
-    await exec.exec("steampipe", ["query", "select 1"]);
+    core.debug(`Executing query to test Steampipe initialization`);
+    // TODO: If silent is true for less noise, will it still show errors?
+    const options = { silent: false };
+    await exec.exec("steampipe", ["query", "select 1"], options);
 
+    // Plugin installation and configuration is optional
     if (pluginConns != "") {
       pluginsToInstall = getPluginsToInstall(pluginConns);
       uniquePluginsToInstall = [...new Set(pluginsToInstall)];
       await installSteampipePlugins(uniquePluginsToInstall, versionToInstall);
       // Remove default spc files created by plugin installation
-      await deleteDefaultPluginConfigs(uniquePluginsToInstall);
-      await setupConnections(pluginConns);
+      await deletePluginConfigs();
+      await writePluginConnections(pluginConns);
     }
 
     if (Object.keys(plugins).length > 0) {

@@ -16,16 +16,16 @@ See [action.yml](action.yml).
 
 ```yaml
 - name: Install Steampipe
-  uses: turbot/steampipe-action-setup
+  uses: turbot/steampipe-action-setup@v1
 ```
 
 ### Install a specific version of Steampipe
 
 ```yaml
 - name: Install Steampipe v0.19.4
-  uses: turbot/steampipe-action-setup
+  uses: turbot/steampipe-action-setup@v1
   with:
-    version: 0.19.4
+    steampipe-version: 0.19.4
 ```
 
 > For available Steampipe versions refer to [Steampipe Releases](https://github.com/turbot/steampipe/releases).
@@ -34,9 +34,9 @@ See [action.yml](action.yml).
 
 ```yaml
 - name: Setup Steampipe
-  uses: turbot/steampipe-action-setup
+  uses: turbot/steampipe-action-setup@v1
   with:
-    connections: |
+    plugin-connections: |
       connection "aws_prod" {
         plugin     = "aws"
         secret_key = "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}"
@@ -53,41 +53,45 @@ See [action.yml](action.yml).
 
 - name: Run queries
   run: |
-    steampipe query "select * from aws_prod.aws_account"
-    steampipe query "select * from aws_dev.aws_account"
+    steampipe query "select account_id from aws_prod.aws_account"
+    steampipe query "select account_id from aws_dev.aws_account"
 ```
 
 ### Install a specific plugin version
 
 ```yaml
 - name: Setup Steampipe
-  uses: turbot/steampipe-action-setup
+  uses: turbot/steampipe-action-setup@v1
   with:
-    connections: |
+    plugin-connections: |
       connection "net" {
         plugin = "net@0.7"
       }
-- name: Run a query
-  run: steampipe query "select issuer, not_after as exp_date from net_certificate where domain = 'github.com'"
+- name: Run query
+  run: steampipe query "select issuer from net_certificate where domain = 'github.com'"
 ```
 
-### Create a connection with JSON
+### Create connections using JSON
 
 ```yaml
 - name: Setup Steampipe
-  uses: turbot/steampipe-action-setup
+  uses: turbot/steampipe-action-setup@v1
   with:
-    connections: |
+    plugin-connections: |
       {
         "connection": {
-          "aws_dev": {
+          "aws": {
             "plugin": "aws",
             "profile": "default",
             "regions": ["us-east-1", "eu-west-1"]
+          },
+          "github": {
+            "plugin": "github",
+            "token": "${{ secrets.GITHUB_TOKEN }}"
           }
         }
       }
-- name: Run a query
+- name: Run query
   run: steampipe query "select name from aws_s3_bucket"
 ```
 

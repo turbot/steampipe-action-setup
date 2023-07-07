@@ -8,7 +8,7 @@ branding:
   icon: database
 inputs:
   steampipe-version:
-    description: 'Steampipe CLI version to install. Defaults to "latest". Examples: latest, 0.19.4, 0.20.5.'
+    description: 'Steampipe CLI version to install. Defaults to "latest". Examples: latest, 0.19.4, 0.20.8.'
     default: latest
     required: false
   plugin-connections:
@@ -17,6 +17,7 @@ inputs:
   steampipe-plugins:
     description: The plugins to install and configure.
     required: false
+    deprecationMessage: This input will be removed in a future release. Please use plugin-connections instead.
 outputs:
   steampipe-version:
     description: The version of Steampipe that was installed.

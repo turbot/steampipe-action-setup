@@ -2,24 +2,26 @@ const core = require("@actions/core");
 const exec = require("@actions/exec");
 const {
   checkPlatform,
-  deleteDefaultPluginConfigs,
+  configureSteampipePlugins,
+  deletePluginConfigs,
   getPluginsToInstall,
   getSteampipeVersions,
   getVersionFromSpec,
   installSteampipe,
   installSteampipePlugins,
-  configureSteampipePlugins,
-  setupConnections,
+  writePluginConnections,
 } = require("./installer");
 
 async function run() {
   try {
     checkPlatform();
+
     const version = core.getInput("steampipe-version", { required: false });
-    const plugins = JSON.parse(core.getInput("steampipe-plugins") || "{}");
     const pluginConns = core.getInput("plugin-connections");
+    const plugins = JSON.parse(core.getInput("steampipe-plugins") || "{}");
     var pluginsToInstall, uniquePluginsToInstall;
 
+    // steampipe-plugins input is deprecated, so error if both inputs are given
     if (pluginConns != "" && Object.keys(plugins).length > 0) {
       throw new Error(
         `Cannot use steampipe-plugins and plugin-connections inputs together`
@@ -28,27 +30,31 @@ async function run() {
 
     const steampipeVersions = await getSteampipeVersions();
     const versionToInstall = getVersionFromSpec(version, steampipeVersions);
-    core.info(`Steampipe CLI version: ${versionToInstall}`);
 
     if (!versionToInstall) {
       throw new Error(`Unable to find Steampipe version '${version}'.`);
     }
 
+    core.info(`Steampipe CLI version: ${versionToInstall}`);
     const steampipePath = await installSteampipe(versionToInstall);
+
     core.addPath(steampipePath);
-    core.info(`Added Steampipe CLI to path`);
+    core.debug(`Added Steampipe CLI to path`);
 
     // Run a simple query to start the Steampipe service and initialize the DB
-    core.info(`Initializing Steampipe service`);
-    await exec.exec("steampipe", ["query", "select 1"]);
+    core.debug(`Executing query to test Steampipe initialization`);
+    // TODO: If silent is true for less noise, will it still show errors?
+    const options = { silent: false };
+    await exec.exec("steampipe", ["query", "select 1"], options);
 
+    // Plugin installation and configuration is optional
     if (pluginConns != "") {
       pluginsToInstall = getPluginsToInstall(pluginConns);
       uniquePluginsToInstall = [...new Set(pluginsToInstall)];
       await installSteampipePlugins(uniquePluginsToInstall, versionToInstall);
       // Remove default spc files created by plugin installation
-      await deleteDefaultPluginConfigs(uniquePluginsToInstall);
-      await setupConnections(pluginConns);
+      await deletePluginConfigs();
+      await writePluginConnections(pluginConns);
     }
 
     if (Object.keys(plugins).length > 0) {
