@@ -167,7 +167,7 @@ async function installSteampipe(steampipeVersion) {
 
 async function installSteampipePlugins(plugins, steampipeVersion) {
   if (!plugins || plugins.length == 0) {
-    throw new Error("No plugins identified");
+    return Promise.resolve();
   }
 
   core.info(`Installing plugins: ${plugins}`);
