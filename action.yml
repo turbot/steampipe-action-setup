@@ -1,7 +1,7 @@
 ---
 name: Setup Steampipe
 description: >
-  Setup a Steampipe environment by installing Steampipe and adding it to the PATH. Optionally install plugins and create plugin connection configurations.
+  Install Steampipe and add it to the PATH. Optionally install plugins and create plugin connection configurations.
 author: François de Metz and Turbot
 branding:
   color: red
