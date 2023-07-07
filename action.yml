@@ -1,20 +1,26 @@
 ---
 name: Setup Steampipe
 description: >
-  Set up a specific version of Steampipe and add the command-line tools to the PATH
-author: François de Metz
+  Setup a Steampipe environment by installing Steampipe and adding it to the PATH. Optionally install plugins and create plugin connection configurations.
+author: François de Metz and Turbot
 branding:
-  color: blue
-  icon: code
+  color: red
+  icon: database
 inputs:
   steampipe-version:
-    description: Version range or exact version of Steampipe to use.
-    default: 'latest'
+    description: 'Steampipe CLI version to install. Defaults to "latest". Examples: latest, 0.19.4, 0.20.8.'
+    default: latest
+    required: false
+  plugin-connections:
+    description: Steampipe plugin connections to create. Accepts HCL or JSON format.
+    required: false
   steampipe-plugins:
     description: The plugins to install and configure.
+    required: false
+    deprecationMessage: This input will be removed in a future release. Please use plugin-connections instead.
 outputs:
   steampipe-version:
-    description: Exact version of Steampipe that was installed
+    description: The version of Steampipe that was installed.
 runs:
   using: node16
   main: dist/index.js
