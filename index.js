@@ -10,6 +10,7 @@ const {
   installSteampipe,
   installSteampipePlugins,
   writePluginConnections,
+  createDefaultSpc,
 } = require("./installer");
 
 async function run() {
@@ -40,6 +41,9 @@ async function run() {
 
     core.addPath(steampipePath);
     core.debug(`Added Steampipe CLI to path`);
+
+    // Create default.spc before initialization
+    await createDefaultSpc();
 
     // Run a simple query to start the Steampipe service and initialize the DB
     core.debug(`Executing query to test Steampipe initialization`);
