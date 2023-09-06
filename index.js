@@ -42,7 +42,8 @@ async function run() {
     core.addPath(steampipePath);
     core.debug(`Added Steampipe CLI to path`);
 
-    // Create default.spc before initialization
+    // Create default.spc with "update_check = false" before initialization
+    // to prevent the CLI update check too
     await createDefaultSpc();
 
     // Run a simple query to start the Steampipe service and initialize the DB
