@@ -12,6 +12,10 @@ const { promises: fsPromises } = require("fs");
 const supportedPlatforms = ["linux", "darwin"];
 const supportedArchs = ["x64", "arm64"];
 
+const defaultSpcContent = `options "general" {
+  update_check = false
+}`;
+
 function checkPlatform(p = process) {
   if (!supportedPlatforms.includes(p.platform)) {
     throw new Error(
@@ -360,7 +364,9 @@ async function deletePluginConfigs() {
     `${process.env.HOME}/.steampipe/config`
   );
   for (const entry of contents) {
-    await fsPromises.unlink(`${process.env.HOME}/.steampipe/config/${entry}`);
+    if (entry !== 'default.spc') {
+      await fsPromises.unlink(`${process.env.HOME}/.steampipe/config/${entry}`);
+    }
   }
 }
 
@@ -382,6 +388,15 @@ async function writePluginConnections(connections) {
   filePath += fileExtension;
   core.info(`Writing connections into ${filePath}`);
   await fsPromises.writeFile(filePath, connections);
+}
+
+async function createDefaultSpc() {
+  let spPath = path.join(`${process.env.HOME}`, ".steampipe")
+  let dirPath = path.join(spPath, "config")
+  let filePath = path.join(dirPath, "default.spc");
+  await fsPromises.mkdir(spPath);
+  await fsPromises.mkdir(dirPath);
+  await fsPromises.writeFile(filePath, defaultSpcContent);
 }
 
 function getConnConfigType(connections) {
@@ -410,6 +425,7 @@ function getConnConfigType(connections) {
 module.exports = {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipePluginConfig,

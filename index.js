@@ -3,6 +3,7 @@ const exec = require("@actions/exec");
 const {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipeVersions,
@@ -41,11 +42,15 @@ async function run() {
     core.addPath(steampipePath);
     core.debug(`Added Steampipe CLI to path`);
 
+    // Create default.spc with "update_check = false" before initialization
+    // to prevent the CLI update check too
+    await createDefaultSpc();
+
     // Run a simple query to start the Steampipe service and initialize the DB
     core.debug(`Executing query to test Steampipe initialization`);
     // TODO: If silent is true for less noise, will it still show errors?
     const options = { silent: false };
-    await exec.exec("steampipe", ["query", "select 1"], options);
+    await exec.exec("steampipe", ["query", "select true as initialized"], options);
 
     // Plugin installation and configuration is optional
     if (pluginConns != "") {
