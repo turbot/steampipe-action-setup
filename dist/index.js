@@ -10552,7 +10552,7 @@ async function run() {
     core.debug(`Executing query to test Steampipe initialization`);
     // TODO: If silent is true for less noise, will it still show errors?
     const options = { silent: false };
-    await exec.exec("steampipe", ["query", "select 1"], options);
+    await exec.exec("steampipe", ["query", "select true as initialized"], options);
 
     // Plugin installation and configuration is optional
     if (pluginConns != "") {
