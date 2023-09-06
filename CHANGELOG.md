@@ -1,3 +1,10 @@
+## v1.5.0 [2023-09-06]
+
+_Enhancements_
+
+- The `config/default.spc` file is now created after CLI installation with CLI and plugin update checks disabled.
+- Improved initialization query to be more clear.
+
 ## v1.4.0 [2023-07-07]
 
 _What's new?_
