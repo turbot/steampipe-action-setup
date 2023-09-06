@@ -431,6 +431,7 @@ function getConnConfigType(connections) {
 module.exports = {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipePluginConfig,
@@ -439,7 +440,6 @@ module.exports = {
   installSteampipe,
   installSteampipePlugins,
   writePluginConnections,
-  createDefaultSpc,
 };
 
 
@@ -10505,6 +10505,7 @@ const exec = __nccwpck_require__(1514);
 const {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipeVersions,
@@ -10512,7 +10513,6 @@ const {
   installSteampipe,
   installSteampipePlugins,
   writePluginConnections,
-  createDefaultSpc,
 } = __nccwpck_require__(7968);
 
 async function run() {
@@ -10544,7 +10544,8 @@ async function run() {
     core.addPath(steampipePath);
     core.debug(`Added Steampipe CLI to path`);
 
-    // Create default.spc before initialization
+    // Create default.spc with "update_check = false" before initialization
+    // to prevent the CLI update check too
     await createDefaultSpc();
 
     // Run a simple query to start the Steampipe service and initialize the DB

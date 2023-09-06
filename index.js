@@ -3,6 +3,7 @@ const exec = require("@actions/exec");
 const {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipeVersions,
@@ -10,7 +11,6 @@ const {
   installSteampipe,
   installSteampipePlugins,
   writePluginConnections,
-  createDefaultSpc,
 } = require("./installer");
 
 async function run() {

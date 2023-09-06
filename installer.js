@@ -425,6 +425,7 @@ function getConnConfigType(connections) {
 module.exports = {
   checkPlatform,
   configureSteampipePlugins,
+  createDefaultSpc,
   deletePluginConfigs,
   getPluginsToInstall,
   getSteampipePluginConfig,
@@ -433,5 +434,4 @@ module.exports = {
   installSteampipe,
   installSteampipePlugins,
   writePluginConnections,
-  createDefaultSpc,
 };
