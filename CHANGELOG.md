@@ -1,3 +1,12 @@
+## v1.5.1 [2023-10-23]
+
+_Dependencies_
+
+- Bumped @babel/traverse from 7.22.17 to 7.23.2. ([#93](https://github.com/turbot/steampipe-action-setup/pull/93))
+- Bumped @vercel/ncc from 0.36.1 to 0.38.0. ([#85](https://github.com/turbot/steampipe-action-setup/pull/85))
+- Bumped eslint from 8.48.0 to 8.52.0. ([#94](https://github.com/turbot/steampipe-action-setup/pull/94))
+- Bumped jest from 29.6.4 to 29.7.0. ([#88](https://github.com/turbot/steampipe-action-setup/pull/88))
+
 ## v1.5.0 [2023-09-06]
 
 _Enhancements_
