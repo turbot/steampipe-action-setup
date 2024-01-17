@@ -39,15 +39,15 @@ See [action.yml](action.yml).
     plugin-connections: |
       connection "aws_prod" {
         plugin     = "aws"
-        secret_key = "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}"
-        access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}"
+        access_key = "${{ secrets.AWS_ACCESS_KEY_ID_PROD }}"
+        secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}"
         regions    = ["us-east-1", "us-west-2"]
       }
 
       connection "aws_dev" {
         plugin     = "aws"
-        secret_key = "${{ secrets.AWS_ACCESS_KEY_ID_DEV }}"
-        access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}"
+        access_key = "${{ secrets.AWS_ACCESS_KEY_ID_DEV }}"
+        secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}"
         regions    = ["*"]
       }
 
