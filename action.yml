@@ -22,5 +22,5 @@ outputs:
   steampipe-version:
     description: The version of Steampipe that was installed.
 runs:
-  using: node16
+  using: node20
   main: dist/index.js
