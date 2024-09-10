@@ -1,3 +1,22 @@
+## v1.5.2 [2024-09-10]
+
+_Bug fixes_
+
+- Fixed secret references for AWS creds in README.
+
+_Dependencies_
+
+- Bumped @actions/core from v0.10.0 to v0.10.1.
+- Bumped @vercel/ncc from v0.38.0 to v0.38.1.
+- Bumped actions/setup-node from 3 to 4. ([#95](https://github.com/turbot/steampipe-action-setup/pull/95))
+- Bumped actions/upload-artifact from 3 to 4. ([#100](https://github.com/turbot/steampipe-action-setup/pull/100))
+- Bumped braces from 3.0.2 to 3.0.3. ([#109](https://github.com/turbot/steampipe-action-setup/pull/109))
+- Bumped eslint from 8.52.0 to 8.56.0. ([#101](https://github.com/turbot/steampipe-action-setup/pull/101))
+- Bumped eslint from 8.56.0 to 9.2.0. ([#108](https://github.com/turbot/steampipe-action-setup/pull/108))
+- Bumped github/codeql-action from 2 to 3. ([#99](https://github.com/turbot/steampipe-action-setup/pull/99))
+- Bumped semver from v7.5.4 to v7.6.3.
+- Update to node v20 in action and check-dist workflow ([#104](https://github.com/turbot/steampipe-action-setup/pull/104)) (Thanks [@francois2metz](https://github.com/francois2metz) for the contribution!)
+
 ## v1.5.1 [2023-10-23]
 
 _Dependencies_
