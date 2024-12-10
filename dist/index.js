@@ -9854,6 +9854,12 @@ async function run() {
       await configureSteampipePlugins(plugins);
     }
 
+   if (Object.keys(plugins).length > 0) {
+      core.debug(`Listing plugins to check their status and initialize information_schema`);
+      const options = { silent: false };
+      await exec.exec("steampipe", ["plugin", "list"], options);
+    }
+
     core.setOutput("steampipe-version", versionToInstall);
   } catch (error) {
     core.setFailed(error.message);
