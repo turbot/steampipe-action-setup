@@ -9852,10 +9852,8 @@ async function run() {
       uniquePluginsToInstall = [...new Set(pluginsToInstall)];
       await installSteampipePlugins(uniquePluginsToInstall, versionToInstall);
       await configureSteampipePlugins(plugins);
-    }
 
-   if (Object.keys(plugins).length > 0) {
-      core.debug(`Listing plugins to check their status and initialize information_schema`);
+      core.debug(`Listing plugins to check their status`);
       const options = { silent: false };
       await exec.exec("steampipe", ["plugin", "list"], options);
     }
