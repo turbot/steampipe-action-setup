@@ -1,3 +1,13 @@
+## v1.6.0 [2024-12-18]
+
+_Enhancements_
+
+- `steampipe plugin list` is now run after plugin installation and configuration to show plugin and connection status. ([#124](https://github.com/turbot/steampipe-action-setup/pull/124)) (Thanks [@iainelder](https://github.com/iainelder) for the contribution!)
+
+_Dependencies_
+
+- Bumped eslint from 9.2.0 to 9.16.0. ([#123](https://github.com/turbot/steampipe-action-setup/pull/123))
+
 ## v1.5.2 [2024-09-10]
 
 _Bug fixes_
