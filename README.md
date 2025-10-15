@@ -99,6 +99,8 @@ See [action.yml](action.yml).
 
 ### Run local controls
 
+> **Note:** For running benchmarks and controls, use [Powerpipe](https://powerpipe.io) instead of Steampipe. Powerpipe can use the same plugin connections configured by this action.
+
 ```yaml
 steps:
   - uses: actions/checkout@v5
@@ -128,10 +130,13 @@ steps:
           token   = "${{ secrets.SCALINGO_SECNUM_TOKEN }}"
           regions = ["osc-fr1", "osc-secnum-fr1"]
         }
+  - name: Install Powerpipe
+    run: |
+      sudo /bin/sh -c "$(curl -fsSL https://powerpipe.io/install/powerpipe.sh)"
   - name: Run checks
     id: checks
     continue-on-error: true
-    run: steampipe check all --progress=false --export=results.md
+    run: powerpipe benchmark run all --export=results.md
   - name: Output markdown to the step
     run: cat results.md >> $GITHUB_STEP_SUMMARY
   - name: Exit
@@ -139,7 +144,7 @@ steps:
     run: exit 1
 ```
 
-Run local controls and post failure on slack with a [custom control output template](https://steampipe.io/docs/develop/writing-control-output-templates).
+Run local controls and post failure on slack with a [custom control output template](https://powerpipe.io/docs/run/templates).
 The template must be installed before. It's available in the [templates directory](./templates).
 
 ```yaml
@@ -171,22 +176,25 @@ steps:
           token   = "${{ secrets.SCALINGO_SECNUM_TOKEN }}"
           regions = ["osc-fr1", "osc-secnum-fr1"]
         }
+  - name: Install Powerpipe
+    run: |
+      sudo /bin/sh -c "$(curl -fsSL https://powerpipe.io/install/powerpipe.sh)"
   - name: Install slack output template
     run: |
-      mkdir -p ~/.steampipe/check/templates/slack
-      cp slackoutput.tmpl ~/.steampipe/check/templates/slack/output.tmpl
-      sed -i s/##RUN_ID##/${{ github.run_id }}/ ~/.steampipe/check/templates/slack/output.tmpl
-      sed -i s/##SERVER_URL##/${{ github.server_url }}/ ~/.steampipe/check/templates/slack/output.tmpl
-      sed -i s/##REPOSITORY##/${{ github.repository }}/ ~/.steampipe/check/templates/slack/output.tmpl
+      mkdir -p ~/.powerpipe/templates/slack
+      cp slackoutput.tmpl ~/.powerpipe/templates/slack/output.tmpl
+      sed -i s/##RUN_ID##/${{ github.run_id }}/ ~/.powerpipe/templates/slack/output.tmpl
+      sed -i s/##SERVER_URL##/${{ github.server_url }}/ ~/.powerpipe/templates/slack/output.tmpl
+      sed -i s/##REPOSITORY##/${{ github.repository }}/ ~/.powerpipe/templates/slack/output.tmpl
   - name: Run checks
     id: checks
     continue-on-error: true
-    run: steampipe check all --progress=false --export=results.md --export=results.slack
+    run: powerpipe benchmark run all --export=results.md --export=results.slack
   - name: Output markdown to the step
     run: cat results.md >> $GITHUB_STEP_SUMMARY
-  - name:
+  - name: Set Powerpipe output to environment variable
     run: |
-      echo "STEAMPIPE_OUTPUT<<EOF" >> $GITHUB_ENV
+      echo "POWERPIPE_OUTPUT<<EOF" >> $GITHUB_ENV
       cat results.slack >> $GITHUB_ENV
       echo "EOF" >> $GITHUB_ENV
   - name: Post to a Slack channel
@@ -195,7 +203,7 @@ steps:
     with:
       channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
       payload: |
-        ${{ env.STEAMPIPE_OUTPUT }}
+        ${{ env.POWERPIPE_OUTPUT }}
     env:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
   - name: Exit
