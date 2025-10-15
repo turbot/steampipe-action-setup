@@ -192,7 +192,7 @@ steps:
     run: powerpipe benchmark run all --export=results.md --export=results.slack
   - name: Output markdown to the step
     run: cat results.md >> $GITHUB_STEP_SUMMARY
-  - name:
+  - name: Set Powerpipe output to environment variable
     run: |
       echo "POWERPIPE_OUTPUT<<EOF" >> $GITHUB_ENV
       cat results.slack >> $GITHUB_ENV
