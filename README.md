@@ -101,7 +101,7 @@ See [action.yml](action.yml).
 
 ```yaml
 steps:
-  - uses: actions/checkout@v3
+  - uses: actions/checkout@v5
   - uses: turbot/steampipe-action-setup@v1
     with:
       steampipe-version: 'latest'
@@ -144,7 +144,7 @@ The template must be installed before. It's available in the [templates director
 
 ```yaml
 steps:
-  - uses: actions/checkout@v3
+  - uses: actions/checkout@v5
   - uses: turbot/steampipe-action-setup@v1
     with:
       steampipe-version: 'latest'
