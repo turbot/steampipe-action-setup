@@ -1,0 +1,21 @@
+name: Update or Create Major Tag
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: 'The source tag to update/create major tag against.'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  set_major_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: publish-action
+        uses: actions/publish-action@v0.2.2
+        with:
+          source-tag: ${{ github.event.inputs.source_tag || github.event.release.tag_name }}
