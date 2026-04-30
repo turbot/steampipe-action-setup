@@ -1,3 +1,19 @@
+## v1.7.0 [2026-04-30]
+
+_Enhancements_
+
+- Migrated action runtime from Node.js 20 to Node.js 24. ([#159](https://github.com/turbot/steampipe-action-setup/pull/159))
+
+_Dependencies_
+
+- Bumped @actions/core from 1.10.1 to 1.11.1. ([#116](https://github.com/turbot/steampipe-action-setup/pull/116))
+- Bumped actions/checkout from 4 to 5. ([#140](https://github.com/turbot/steampipe-action-setup/pull/140)
+- Bumped eslint from 9.16.0 to 9.22.0. ([#134](https://github.com/turbot/steampipe-action-setup/pull/134))
+- Bumped flatted from 3.3.1 to 3.4.2. ([#162](https://github.com/turbot/steampipe-action-setup/pull/162))
+- Bumped js-yaml from 3.14.1 to 3.14.2. ([#154](https://github.com/turbot/steampipe-action-setup/pull/154))
+- Bumped minimatch from 3.1.2 to 3.1.5. ([#163](https://github.com/turbot/steampipe-action-setup/pull/163))
+- Bumped semver from 7.6.3 to 7.7.0. ([#161](https://github.com/turbot/steampipe-action-setup/pull/161))
+
 ## v1.6.0 [2024-12-18]
 
 _Enhancements_
