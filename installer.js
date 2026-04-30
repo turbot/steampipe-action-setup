@@ -208,7 +208,7 @@ async function configureSteampipePlugins(plugins) {
           await fsPromises.unlink(
             path.join(baseConfigPath, getPluginShortName(plugin) + ".spc")
           );
-        } catch (e) {
+        } catch {
           // ignore error
         }
       })
@@ -406,7 +406,7 @@ function getConnConfigType(connections) {
     JSON.parse(connections);
     return "json";
     // Ignore errors so we can check if it's HCL
-  } catch (err) {
+  } catch {
     // ignore error
   }
 
@@ -414,7 +414,7 @@ function getConnConfigType(connections) {
     hcl.parse(connections);
     return "hcl";
     // Ignore errors so we can return unknown type
-  } catch (err) {
+  } catch {
     // ignore error
   }
 
